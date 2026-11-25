@@ -663,7 +663,13 @@ class BaseModalProcessor:
                 return result
 
         # Strategy 2: Try with basic cleanup
-        for json_candidate in self._extract_all_json_candidates(response):
+        # Curly quotes are JSON delimiters only when no ASCII quote is present.
+        cleanup_response = response
+        if '"' not in cleanup_response:
+            cleanup_response = cleanup_response.replace("\u201c", '"').replace(
+                "\u201d", '"'
+            )
+        for json_candidate in self._extract_all_json_candidates(cleanup_response):
             cleaned = self._basic_json_cleanup(json_candidate)
             result = self._try_parse_json(cleaned)
             if result:
@@ -752,10 +758,6 @@ class BaseModalProcessor:
         """Basic cleanup for common JSON issues"""
         # Remove extra whitespace
         json_str = json_str.strip()
-
-        # Fix common quote issues
-        json_str = json_str.replace('"', '"').replace('"', '"')  # Smart quotes
-        json_str = json_str.replace(""", "'").replace(""", "'")  # Smart apostrophes
 
         # Fix trailing commas (simple case)
         json_str = re.sub(r",(\s*[}\]])", r"\1", json_str)
